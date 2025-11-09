@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "name": "Bananas",
+    "category": "Produce",
+    "quantity": 6,
+    "unit": "pcs",
+    "price": 0.25
+  },
+  {
+    "id": 2,
+    "name": "Milk",
+    "category": "Dairy",
+    "quantity": 1,
+    "unit": "gal",
+    "price": 3.49
+  },
+  {
+    "id": 3,
+    "name": "Eggs",
+    "category": "Dairy",
+    "quantity": 12,
+    "unit": "pcs",
+    "price": 2.99
+  },
+  {
+    "id": 4,
+    "name": "Bread",
+    "category": "Bakery",
+    "quantity": 1,
+    "unit": "loaf",
+    "price": 2.5
+  },
+  {
+    "id": 5,
+    "name": "Tomatoes",
+    "category": "Produce",
+    "quantity": 4,
+    "unit": "pcs",
+    "price": 0.75
+  }
+]

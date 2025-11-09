@@ -1,0 +1,443 @@
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  StatusBar,
+  ScrollView,
+  Alert,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+
+export default function BMICalculatorScreen() {
+  const router = useRouter();
+  const [height, setHeight] = useState("");
+  const [weight, setWeight] = useState("");
+  const [bmi, setBmi] = useState<number | null>(null);
+  const [category, setCategory] = useState("Not calculated");
+  const [color, setColor] = useState("#2b7fff");
+
+  const getBMICategory = (bmiValue: number) => {
+    if (bmiValue < 18.5) {
+      return { category: "Underweight", color: "#2b7fff" };
+    } else if (bmiValue < 25) {
+      return { category: "Normal", color: "#00c950" };
+    } else if (bmiValue < 30) {
+      return { category: "Overweight", color: "#ff6900" };
+    } else {
+      return { category: "Obese", color: "#fb2c36" };
+    }
+  };
+
+  const handleCalculate = () => {
+    const heightNum = parseFloat(height);
+    const weightNum = parseFloat(weight);
+
+    if (!height || !weight) {
+      Alert.alert("Error", "Please enter both height and weight");
+      return;
+    }
+
+    if (heightNum <= 0 || weightNum <= 0) {
+      Alert.alert("Error", "Please enter valid values");
+      return;
+    }
+
+    // BMI = weight (kg) / (height (m))^2
+    const heightInMeters = heightNum / 100;
+    const calculatedBmi = weightNum / (heightInMeters * heightInMeters);
+
+    const { category: bmiCategory, color: bmiColor } =
+      getBMICategory(calculatedBmi);
+
+    setBmi(calculatedBmi);
+    setCategory(bmiCategory);
+    setColor(bmiColor);
+  };
+
+  const handleSave = () => {
+    if (bmi === null) {
+      Alert.alert("Error", "Please calculate your BMI first");
+      return;
+    }
+    // Navigate to allergen preference screen
+    router.push("/allergenPreference");
+  };
+
+  const handleBack = () => {
+    router.back();
+  };
+
+  const getIndicatorPosition = () => {
+    if (bmi === null) return 65.61; // Default position
+
+    const maxWidth = 272.38;
+    const segmentWidth = maxWidth / 4;
+
+    if (bmi < 18.5) {
+      // Underweight: 0-68.095px
+      return Math.min((bmi / 18.5) * segmentWidth, segmentWidth - 2);
+    } else if (bmi < 25) {
+      // Normal: 68.095-136.19px
+      return 68.095 + ((bmi - 18.5) / 6.5) * segmentWidth;
+    } else if (bmi < 30) {
+      // Overweight: 136.19-204.28px
+      return 136.19 + ((bmi - 25) / 5) * segmentWidth;
+    } else {
+      // Obese: 204.28-272.38px
+      return Math.min(
+        204.28 + ((bmi - 30) / 10) * segmentWidth,
+        maxWidth - 2
+      );
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#3C2253" />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>BMI Calculator</Text>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Input Card */}
+        <View style={styles.inputCard}>
+          {/* Icon and Title Section */}
+          <View style={styles.titleSection}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="body-outline" size={20} color="#3C2253" />
+            </View>
+            <View style={styles.titleContainer}>
+              <Text style={styles.cardTitle}>Calculate Your BMI</Text>
+              <Text style={styles.cardSubtitle}>
+                Enter your height and weight below
+              </Text>
+            </View>
+          </View>
+
+          {/* Input Fields */}
+          <View style={styles.inputsContainer}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Height (cm)</Text>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="170"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric"
+                  value={height}
+                  onChangeText={setHeight}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Weight (kg)</Text>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="65"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric"
+                  value={weight}
+                  onChangeText={setWeight}
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Calculate Button */}
+          <TouchableOpacity style={styles.calculateButton} onPress={handleCalculate}>
+            <Text style={styles.calculateButtonText}>Calculate BMI</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Result Card */}
+        {bmi !== null && (
+          <View style={styles.resultCard}>
+            {/* BMI Display */}
+            <View style={styles.bmiDisplay}>
+              <Text style={styles.bmiLabel}>Your BMI:</Text>
+              <Text style={styles.bmiValue}>{bmi.toFixed(1)}</Text>
+              <Text style={[styles.bmiCategory, { color }]}>{category}</Text>
+            </View>
+
+            {/* BMI Scale */}
+            <View style={styles.scaleContainer}>
+              <Text style={styles.scaleTitle}>BMI Ranges</Text>
+              <View style={styles.scaleBar}>
+                {/* Color segments */}
+                <View style={[styles.scaleSegment, { backgroundColor: "#2b7fff", width: "25%" }]} />
+                <View style={[styles.scaleSegment, { backgroundColor: "#00c950", width: "25%" }]} />
+                <View style={[styles.scaleSegment, { backgroundColor: "#ff6900", width: "25%" }]} />
+                <View style={[styles.scaleSegment, { backgroundColor: "#fb2c36", width: "25%" }]} />
+                
+                {/* Indicator */}
+                <View
+                  style={[
+                    styles.indicator,
+                    { left: `${(getIndicatorPosition() / 272.38) * 100}%` },
+                  ]}
+                />
+              </View>
+
+              {/* Labels */}
+              <View style={styles.scaleLabels}>
+                <View style={styles.scaleLabelItem}>
+                  <Text style={styles.scaleLabelText}>Underweight</Text>
+                  <Text style={styles.scaleLabelRange}>{"<18.5"}</Text>
+                </View>
+                <View style={styles.scaleLabelItem}>
+                  <Text style={styles.scaleLabelText}>Normal</Text>
+                  <Text style={styles.scaleLabelRange}>18.5-24.9</Text>
+                </View>
+                <View style={styles.scaleLabelItem}>
+                  <Text style={styles.scaleLabelText}>Overweight</Text>
+                  <Text style={styles.scaleLabelRange}>25-29.9</Text>
+                </View>
+                <View style={styles.scaleLabelItem}>
+                  <Text style={styles.scaleLabelText}>Obese</Text>
+                  <Text style={styles.scaleLabelRange}>≥30</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Save/Continue Button */}
+      {bmi !== null && (
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <Text style={styles.saveButtonText}>Continue</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F5F5F7",
+  },
+  header: {
+    backgroundColor: "#3C2253",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 20,
+    height: 116,
+  },
+  backButton: {
+    marginRight: 16,
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "400",
+    color: "#FFFFFF",
+  },
+  scrollContent: {
+    padding: 24,
+    paddingBottom: 100,
+  },
+  inputCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  titleSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 100,
+    backgroundColor: "#F0EFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+  titleContainer: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "400",
+    color: "#333333",
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: "#4A5565",
+    lineHeight: 20,
+  },
+  inputsContainer: {
+    gap: 16,
+    marginBottom: 24,
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#333333",
+  },
+  inputWrapper: {
+    backgroundColor: "#F5F5F7",
+    borderRadius: 14,
+    height: 48,
+    paddingHorizontal: 12,
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  input: {
+    fontSize: 16,
+    color: "#333333",
+  },
+  calculateButton: {
+    backgroundColor: "#3C2253",
+    borderRadius: 100,
+    height: 56,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  calculateButtonText: {
+    fontSize: 18,
+    fontWeight: "400",
+    color: "#FFFFFF",
+  },
+  resultCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  bmiDisplay: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  bmiLabel: {
+    fontSize: 14,
+    color: "#4A5565",
+    marginBottom: 4,
+  },
+  bmiValue: {
+    fontSize: 30,
+    fontWeight: "bold",
+    color: "#333333",
+    marginBottom: 4,
+  },
+  bmiCategory: {
+    fontSize: 18,
+    fontWeight: "400",
+  },
+  scaleContainer: {
+    gap: 12,
+  },
+  scaleTitle: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#333333",
+  },
+  scaleBar: {
+    height: 32,
+    borderRadius: 100,
+    flexDirection: "row",
+    overflow: "hidden",
+    position: "relative",
+    backgroundColor: "#E5E7EB",
+  },
+  scaleSegment: {
+    height: "100%",
+  },
+  indicator: {
+    position: "absolute",
+    top: 0,
+    width: 4,
+    height: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 100,
+    borderWidth: 1.5,
+    borderColor: "#1E2939",
+    transform: [{ translateX: -2 }],
+  },
+  scaleLabels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  scaleLabelItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  scaleLabelText: {
+    fontSize: 12,
+    color: "#4A5565",
+    marginBottom: 2,
+  },
+  scaleLabelRange: {
+    fontSize: 12,
+    color: "#4A5565",
+  },
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 24,
+    backgroundColor: "#F5F5F7",
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+  saveButton: {
+    backgroundColor: "#3C2253",
+    borderRadius: 100,
+    height: 56,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  saveButtonText: {
+    fontSize: 18,
+    fontWeight: "400",
+    color: "#FFFFFF",
+  },
+});
+
