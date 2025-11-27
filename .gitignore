@@ -1,0 +1,17 @@
+# Node / React Native / Expo
+node_modules/
+.expo/
+.expo-shared/
+dist/
+build/
+*.log
+.env
+
+# Ignore OS / system folders
+AppData/
+Desktop/
+Documents/
+Downloads/
+Music/
+Pictures/
+Videos/
