@@ -8,6 +8,12 @@ export interface AuthUser {
   role?: string;
   isAdmin?: boolean;
   createdAt?: string;
+  dietaryPreferences?: string[];
+  allergens?: string[];
+  height?: number;
+  weight?: number;
+  bmi?: number;
+  bmiCategory?: string;
 }
 
 export interface User {
@@ -34,9 +40,28 @@ export interface UsersResponse {
   count?: number;
 }
 
+export interface InventoryItem {
+  _id?: string;
+  id?: string;
+  name: string;
+  category: string;
+  subcategory?: string;
+  stock: number;
+  unit: string;
+  status: string;
+  image?: string;
+  minStock?: number;
+  maxStock?: number;
+  price?: number;
+  supplier?: string;
+  lastRestocked?: string;
+}
+
 export interface InventoryResponse {
-  items?: any[];
+  items?: InventoryItem[];
+  categories?: string[];
   count?: number;
+  success?: boolean;
 }
 
 // Signup
@@ -98,7 +123,16 @@ export const getProfile = async (): Promise<ProfileResponse> => {
 };
 
 // Update user profile
-export const updateProfile = async (data: { name?: string; email?: string }): Promise<ProfileResponse> => {
+export const updateProfile = async (data: { 
+  name?: string; 
+  email?: string;
+  dietaryPreferences?: string[];
+  allergens?: string[];
+  height?: number;
+  weight?: number;
+  bmi?: number;
+  bmiCategory?: string;
+}): Promise<ProfileResponse> => {
   try {
     const response = await api.put<ProfileResponse>('/api/auth/me', data);
     return response.data;
@@ -138,11 +172,67 @@ export const deleteUser = async (userId: string): Promise<void> => {
 };
 
 // Get inventory (admin only)
-export const getInventory = async (): Promise<InventoryResponse> => {
+export const getInventory = async (category?: string, search?: string): Promise<InventoryResponse> => {
   try {
-    const response = await api.get<InventoryResponse>('/api/admin/inventory');
+    const params: any = {};
+    if (category && category !== 'all') params.category = category;
+    if (search) params.search = search;
+    
+    const response = await api.get<InventoryResponse>('/api/admin/inventory', { params });
     return response.data;
   } catch (error: any) {
+    throw error;
+  }
+};
+
+// Get single inventory item (admin only)
+export const getInventoryItem = async (itemId: string): Promise<{ success: boolean; item: InventoryItem }> => {
+  try {
+    const response = await api.get(`/api/admin/inventory/${itemId}`);
+    return response.data;
+  } catch (error: any) {
+    throw error;
+  }
+};
+
+// Add inventory item (admin only)
+export const addInventoryItem = async (itemData: Partial<InventoryItem>): Promise<{ success: boolean; item: InventoryItem }> => {
+  try {
+    console.log('[addInventoryItem] Sending data:', itemData);
+    const response = await api.post('/api/admin/inventory', itemData);
+    console.log('[addInventoryItem] Response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('[addInventoryItem] Error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Alias for backward compatibility
+export const createInventoryItem = addInventoryItem;
+
+// Update inventory item (admin only)
+export const updateInventoryItem = async (itemId: string, itemData: Partial<InventoryItem>): Promise<{ success: boolean; item: InventoryItem }> => {
+  try {
+    console.log('[updateInventoryItem] Updating item:', itemId, 'with data:', itemData);
+    const response = await api.patch(`/api/admin/inventory/${itemId}`, itemData);
+    console.log('[updateInventoryItem] Response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('[updateInventoryItem] Error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Delete inventory item (admin only)
+export const deleteInventoryItem = async (itemId: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    console.log('[deleteInventoryItem] Deleting item:', itemId);
+    const response = await api.delete(`/api/admin/inventory/${itemId}`);
+    console.log('[deleteInventoryItem] Response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('[deleteInventoryItem] Error:', error.response?.data || error.message);
     throw error;
   }
 };

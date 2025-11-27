@@ -201,7 +201,7 @@ export default function MealVistaSignUp() {
                     router.replace("/home");
                   } else {
                     console.log('[Google Sign-Up] 🔄 Redirecting to dietary preference');
-                    router.replace("/dietaryPreference");
+                    router.replace({ pathname: "/dietaryPreference", params: { onboarding: 'true' } } as any);
                   }
                 }
               } catch (backendError: unknown) {

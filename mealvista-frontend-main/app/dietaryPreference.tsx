@@ -9,9 +9,9 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { getProfile } from "../lib/authService";
+import { getProfile, updateProfile } from "../lib/authService";
 
 interface DietaryOption {
   id: string;
@@ -32,6 +32,8 @@ const dietaryOptions: DietaryOption[] = [
 
 export default function DietaryPreferenceScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const isOnboarding = params.onboarding === 'true'; // Check if coming from signup
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>(["keto"]);
   const [userName, setUserName] = useState<string | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -44,6 +46,21 @@ export default function DietaryPreferenceScreen() {
         const response = await getProfile();
         if (isMounted) {
           setUserName(response.user?.name ?? null);
+          
+          // Load existing dietary preferences
+          if (response.user?.dietaryPreferences && response.user.dietaryPreferences.length > 0) {
+            // Convert labels back to IDs
+            const preferenceIds = response.user.dietaryPreferences
+              .map(label => {
+                const option = dietaryOptions.find(opt => opt.label === label);
+                return option?.id;
+              })
+              .filter((id): id is string => id !== undefined);
+            
+            if (preferenceIds.length > 0) {
+              setSelectedPreferences(preferenceIds);
+            }
+          }
         }
       } catch (error) {
         if (__DEV__) {
@@ -69,7 +86,7 @@ export default function DietaryPreferenceScreen() {
     );
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (selectedPreferences.length === 0) {
       Alert.alert("Error", "Please select at least one dietary preference");
       return;
@@ -77,14 +94,36 @@ export default function DietaryPreferenceScreen() {
 
     const selectedLabels = dietaryOptions
       .filter((opt) => selectedPreferences.includes(opt.id))
-      .map((opt) => opt.label)
-      .join(", ");
+      .map((opt) => opt.label);
 
-    // Here you would save preferences to backend
-    console.log("Preferences saved:", selectedPreferences);
-    
-    // Navigate to BMI calculator screen
-    router.push("/bmiCalculator");
+    try {
+      // Save preferences to backend
+      await updateProfile({ dietaryPreferences: selectedLabels });
+      console.log("Preferences saved:", selectedLabels);
+      
+      // If onboarding, go to next step (BMI), otherwise go back to profile
+      if (isOnboarding) {
+        router.push({ pathname: "/bmiCalculator", params: { onboarding: 'true' } } as any);
+      } else {
+        // Show success message and go back to profile
+        Alert.alert(
+          "Success",
+          "Dietary preferences saved successfully!",
+          [
+            {
+              text: "OK",
+              onPress: () => router.back(),
+            },
+          ]
+        );
+      }
+    } catch (error: any) {
+      console.error("Error saving dietary preferences:", error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "Failed to save dietary preferences. Please try again."
+      );
+    }
   };
 
   const handleBack = () => {

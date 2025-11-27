@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,10 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { setOnboardingComplete } from "../lib/onboardingStorage";
+import { updateProfile, getProfile } from "../lib/authService";
 
 interface Allergen {
   id: string;
@@ -81,7 +82,36 @@ const allergens: Allergen[] = [
 
 export default function AllergenPreferenceScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const isOnboarding = params.onboarding === 'true'; // Check if coming from signup flow
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadExistingData = async () => {
+      try {
+        const response = await getProfile();
+        if (response.user?.allergens && response.user.allergens.length > 0) {
+          // Convert allergen names back to IDs
+          const allergenIds = response.user.allergens
+            .map(name => {
+              const allergen = allergens.find(a => a.name === name);
+              return allergen?.id;
+            })
+            .filter((id): id is string => id !== undefined);
+          
+          if (allergenIds.length > 0) {
+            setSelectedAllergens(allergenIds);
+          }
+        }
+      } catch (error) {
+        console.warn("Unable to load existing allergen data", error);
+      }
+    };
+
+    if (!isOnboarding) {
+      loadExistingData();
+    }
+  }, [isOnboarding]);
 
   const handleToggleAllergen = (id: string) => {
     setSelectedAllergens((prev) =>
@@ -92,37 +122,49 @@ export default function AllergenPreferenceScreen() {
   const handleSave = async () => {
     const selectedNames = allergens
       .filter((a) => selectedAllergens.includes(a.id))
-      .map((a) => a.name)
-      .join(", ");
+      .map((a) => a.name);
 
-    // Here you would save preferences to backend
-    console.log("Allergen preferences saved:", selectedAllergens);
-    
     try {
-      // Save preferences to backend (you would add API call here)
-      console.log("Allergen preferences saved:", selectedAllergens);
+      // Save allergen preferences to backend
+      await updateProfile({ allergens: selectedNames });
+      console.log("Allergen preferences saved:", selectedNames);
       
-      // Mark onboarding as complete - this should happen BEFORE navigation
-      await setOnboardingComplete();
-      
-      // Navigate to home screen immediately without waiting for alert
-      router.push({
-        pathname: "/home",
-        replace: true
-      } as any);
-      
-      // Show success message after trying to navigate
-      Alert.alert(
-        "Success",
-        selectedAllergens.length === 0
-          ? "No allergen restrictions saved"
-          : `Allergen preferences saved: ${selectedNames}`
-      );
-    } catch (error) {
-      console.error("Error saving preferences:", error);
+      // If onboarding, complete onboarding and go to home, otherwise go back to profile
+      if (isOnboarding) {
+        // Mark onboarding as complete
+        await setOnboardingComplete();
+        
+        // Navigate to home screen
+        router.push({
+          pathname: "/home",
+          replace: true
+        } as any);
+        
+        // Show success message
+        Alert.alert(
+          "Welcome to MealVista!",
+          "Your preferences have been saved successfully."
+        );
+      } else {
+        // Show success message and go back to profile
+        Alert.alert(
+          "Success",
+          selectedAllergens.length === 0
+            ? "No allergen restrictions saved"
+            : `Allergen preferences saved: ${selectedNames.join(", ")}`,
+          [
+            {
+              text: "OK",
+              onPress: () => router.back(),
+            },
+          ]
+        );
+      }
+    } catch (error: any) {
+      console.error("Error saving allergen preferences:", error);
       Alert.alert(
         "Error",
-        "There was a problem saving your preferences. Please try again."
+        error.response?.data?.message || "There was a problem saving your preferences. Please try again."
       );
     }
   };

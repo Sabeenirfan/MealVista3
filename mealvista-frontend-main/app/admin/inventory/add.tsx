@@ -18,17 +18,38 @@ import * as ImagePicker from "expo-image-picker";
 import { Image } from "react-native";
 
 const UNITS = ["kg", "g", "L", "mL", "piece", "packet", "box", "bottle"];
+const CATEGORIES = [
+  "Vegetables",
+  "Fruits",
+  "Meat & Protein",
+  "Dairy Products",
+  "Grains & Pulses",
+  "Beverages",
+  "Indian Spices",
+  "Pakistani Masalas",
+  "International Spices",
+  "Herbs & Seasonings",
+  "Oils & Fats",
+  "Condiments & Sauces",
+  "Bakery Items",
+  "Snacks",
+  "Canned Foods",
+  "Frozen Foods",
+  "Nuts & Seeds"
+];
 
 export default function AddIngredient() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
+  const [category, setCategory] = useState("Vegetables");
   const [quantity, setQuantity] = useState("0");
   const [unit, setUnit] = useState("kg");
   const [price, setPrice] = useState("0.00");
   const [available, setAvailable] = useState(true);
   const [image, setImage] = useState<string | null>(null);
   const [showUnitPicker, setShowUnitPicker] = useState(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -62,19 +83,26 @@ export default function AddIngredient() {
 
     try {
       setLoading(true);
+      if (!category.trim()) {
+        Alert.alert("Error", "Please select a category");
+        return;
+      }
+
       const itemData: any = {
         name: name.trim(),
+        category: category.trim(),
         stock: parseFloat(quantity) || 0,
         unit: unit,
         price: parseFloat(price) || 0,
         available: available,
-        category: "Ingredients", // Default category
         status: available && parseFloat(quantity) > 0 ? "in_stock" : "out_of_stock",
       };
 
       if (image) {
         itemData.image = image;
       }
+
+      console.log('[AddIngredient] Saving item with data:', itemData);
 
       const response = await createInventoryItem(itemData);
       console.log("Item created successfully:", response);
@@ -156,6 +184,46 @@ export default function AddIngredient() {
               value={name}
               onChangeText={setName}
             />
+          </View>
+
+          {/* Category */}
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>Category</Text>
+            <TouchableOpacity
+              style={styles.categoryButton}
+              onPress={() => setShowCategoryPicker(!showCategoryPicker)}
+            >
+              <Text style={styles.categoryText}>{category}</Text>
+              <Ionicons name="chevron-down" size={20} color="#6B7280" />
+            </TouchableOpacity>
+            {showCategoryPicker && (
+              <View style={styles.categoryPicker}>
+                <ScrollView style={styles.categoryScrollView} nestedScrollEnabled={true}>
+                  {CATEGORIES.map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[
+                        styles.categoryOption,
+                        category === cat && styles.categoryOptionActive,
+                      ]}
+                      onPress={() => {
+                        setCategory(cat);
+                        setShowCategoryPicker(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.categoryOptionText,
+                          category === cat && styles.categoryOptionTextActive,
+                        ]}
+                      >
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
           </View>
 
           {/* Quantity & Unit */}
@@ -389,6 +457,48 @@ const styles = StyleSheet.create({
     color: "#6B7280",
   },
   unitOptionTextActive: {
+    color: "#3C2253",
+    fontWeight: "600",
+  },
+  categoryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  categoryText: {
+    fontSize: 16,
+    color: "#111827",
+  },
+  categoryPicker: {
+    marginTop: 8,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    maxHeight: 200,
+    overflow: "hidden",
+  },
+  categoryScrollView: {
+    padding: 8,
+  },
+  categoryOption: {
+    padding: 12,
+    borderRadius: 8,
+  },
+  categoryOptionActive: {
+    backgroundColor: "#F3F4F6",
+  },
+  categoryOptionText: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  categoryOptionTextActive: {
     color: "#3C2253",
     fontWeight: "600",
   },

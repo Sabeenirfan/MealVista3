@@ -20,7 +20,7 @@ import {
   getGoogleClientIdIssue,
   getGoogleClientIds,
 } from "../lib/googleAuth";
-import { getOnboardingStatus } from "../lib/onboardingStorage";
+import { getOnboardingStatus, setOnboardingComplete } from "../lib/onboardingStorage";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -91,18 +91,10 @@ export default function MealVistaSignIn() {
               console.log('[Google Sign-In] 🔄 Redirecting to admin dashboard');
               router.replace("/admin/dashboard");
             } else {
-              // Check if onboarding is complete
-              console.log('[Google Sign-In] 🔄 Checking onboarding status...');
-              const onboardingComplete = await getOnboardingStatus();
-              console.log('[Google Sign-In] Onboarding complete:', onboardingComplete);
-              
-              if (onboardingComplete) {
-                console.log('[Google Sign-In] 🔄 Redirecting to home');
-                router.replace("/home");
-              } else {
-                console.log('[Google Sign-In] 🔄 Redirecting to dietary preference');
-                router.replace("/dietaryPreference");
-              }
+              // Login always goes to home - onboarding only happens during signup
+              console.log('[Google Sign-In] Login successful, going to home');
+              await setOnboardingComplete();
+              router.replace("/home");
             }
           } catch (error: unknown) {
             console.error('[Google Sign-In] ❌ Error in auth flow:', error);
@@ -200,18 +192,10 @@ export default function MealVistaSignIn() {
                   console.log('[Google Sign-In] 🔄 Redirecting to admin dashboard');
                   router.replace("/admin/dashboard");
                 } else {
-                  // Check if onboarding is complete
-                  console.log('[Google Sign-In] 🔄 Checking onboarding status...');
-                  const onboardingComplete = await getOnboardingStatus();
-                  console.log('[Google Sign-In] Onboarding complete:', onboardingComplete);
-                  
-                  if (onboardingComplete) {
-                    console.log('[Google Sign-In] 🔄 Redirecting to home');
-                    router.replace("/home");
-                  } else {
-                    console.log('[Google Sign-In] 🔄 Redirecting to dietary preference');
-                    router.replace("/dietaryPreference");
-                  }
+                  // Login always goes to home - onboarding only happens during signup
+                  console.log('[Google Sign-In] Login successful, going to home');
+                  await setOnboardingComplete();
+                  router.replace("/home");
                 }
               } catch (backendError: unknown) {
                 console.error('[Google Sign-In] ❌ Backend error:', backendError);
@@ -264,13 +248,9 @@ export default function MealVistaSignIn() {
       if (response.user?.isAdmin === true || response.user?.role === 'admin') {
         router.replace("/admin/dashboard");
       } else {
-        // Check if onboarding is complete
-        const onboardingComplete = await getOnboardingStatus();
-        if (onboardingComplete) {
-          router.replace("/home");
-        } else {
-          router.replace("/dietaryPreference");
-        }
+        // Login always goes to home - onboarding only happens during signup
+        await setOnboardingComplete();
+        router.replace("/home");
       }
     } catch (error: unknown) {
       const message =

@@ -10,7 +10,11 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mealvista.app"
+      "bundleIdentifier": "com.mealvista.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "This app needs access to your microphone for voice commands during cooking instructions.",
+        "NSSpeechRecognitionUsageDescription": "This app uses speech recognition for voice commands like 'next', 'pause', and 'continue'."
+      }
     },
     "android": {
       "package": "com.mealvista.app",
@@ -21,7 +25,10 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",

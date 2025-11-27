@@ -29,10 +29,10 @@ const CardDetailsScreen: React.FC = () => {
     total: getTotalPrice() + 30,
   };
 
-  // Format card number as groups of 4 but limit to 12 digits (user requested exact 12 digits)
+  // Format card number as groups of 4, supporting 13-19 digits (standard card lengths)
   const formatCardNumber = (text: string) => {
     const cleaned = text.replace(/\D/g, "");
-    const limited = cleaned.slice(0, 12); // exact 12 digits max
+    const limited = cleaned.slice(0, 19); // max 19 digits (some cards are longer)
     const formatted = limited.match(/.{1,4}/g)?.join(" ") || limited;
     setCardNumber(formatted);
     if (errors.cardNumber) setErrors((prev) => ({ ...prev, cardNumber: undefined }));
@@ -52,16 +52,39 @@ const CardDetailsScreen: React.FC = () => {
   };
 
   const validateName = (name: string) => {
-    if (!name || name.trim().length === 0) return "Name is required";
-    const regex = /^[A-Za-z ]+$/;
-    if (!regex.test(name.trim())) return "Name must contain only letters and spaces";
+    if (!name || name.trim().length === 0) return "Cardholder name is required";
+    if (name.trim().length < 3) return "Name must be at least 3 characters";
+    const regex = /^[A-Za-z]+(\s[A-Za-z]+)*$/;
+    if (!regex.test(name.trim())) return "Name must contain only letters (no numbers or special characters)";
     return undefined;
+  };
+
+  // Luhn algorithm to validate card number
+  const luhnCheck = (cardNumber: string): boolean => {
+    let sum = 0;
+    let isEven = false;
+    for (let i = cardNumber.length - 1; i >= 0; i--) {
+      let digit = parseInt(cardNumber[i], 10);
+      if (isEven) {
+        digit *= 2;
+        if (digit > 9) digit -= 9;
+      }
+      sum += digit;
+      isEven = !isEven;
+    }
+    return sum % 10 === 0;
   };
 
   const validateCardNumber = (value: string) => {
     const digits = value.replace(/\s/g, "");
     if (!digits) return "Card number is required";
-    if (!/^\d{12}$/.test(digits)) return "Card number must be exactly 12 digits";
+    if (!/^\d+$/.test(digits)) return "Card number must contain only digits";
+    if (digits.length < 13 || digits.length > 19) {
+      return "Card number must be between 13 and 19 digits";
+    }
+    if (!luhnCheck(digits)) {
+      return "Invalid card number";
+    }
     return undefined;
   };
 
@@ -71,20 +94,27 @@ const CardDetailsScreen: React.FC = () => {
     if (!m) return "Expiry must be in MM/YY format";
     const month = parseInt(m[1], 10);
     const year = 2000 + parseInt(m[2], 10);
-    if (month < 1 || month > 12) return "Expiry month must be between 01 and 12";
+    if (month < 1 || month > 12) return "Invalid month (must be 01-12)";
     const now = new Date();
     const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1; // 1-based
+    const currentMonth = now.getMonth() + 1;
     if (year < currentYear || (year === currentYear && month < currentMonth)) {
-      return "Expiry date must be in the future";
+      return "Card has expired";
+    }
+    // Check if expiry is too far in future (more than 10 years)
+    if (year > currentYear + 10) {
+      return "Invalid expiry year";
     }
     return undefined;
   };
 
   const validateCvv = (value: string) => {
+    if (!value) return "CVV is required";
     const digits = value.replace(/\D/g, "");
-    if (!digits) return "CVV is required";
-    if (digits.length < 3 || digits.length > 4) return "CVV must be 3 or 4 digits";
+    if (!/^\d+$/.test(value)) return "CVV must contain only numbers";
+    if (digits.length !== 3 && digits.length !== 4) {
+      return "CVV must be 3 or 4 digits";
+    }
     return undefined;
   };
 
@@ -144,12 +174,12 @@ const CardDetailsScreen: React.FC = () => {
             <Text style={styles.label}>Card Number</Text>
             <TextInput
               style={[styles.input, errors.cardNumber ? styles.inputError : null]}
-              placeholder="1234 5678 9012"
+              placeholder="1234 5678 9012 3456"
               placeholderTextColor="#B8AFCC"
               value={cardNumber}
               onChangeText={formatCardNumber}
               keyboardType="numeric"
-              maxLength={14} // 12 digits + 2 spaces when grouped 4-4-4 => 14 chars
+              maxLength={23} // 19 digits + 4 spaces = 23 chars max
             />
             {errors.cardNumber && <Text style={styles.errorText}>{errors.cardNumber}</Text>}
           </View>

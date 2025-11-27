@@ -39,6 +39,31 @@ const userSchema = new mongoose.Schema({
     sparse: true
   },
   profilePicture: String,
+  // Health and Dietary Preferences
+  dietaryPreferences: {
+    type: [String],
+    default: []
+  },
+  allergens: {
+    type: [String],
+    default: []
+  },
+  height: {
+    type: Number,
+    default: null
+  },
+  weight: {
+    type: Number,
+    default: null
+  },
+  bmi: {
+    type: Number,
+    default: null
+  },
+  bmiCategory: {
+    type: String,
+    default: null
+  },
   isDeleted: {
     type: Boolean,
     default: false

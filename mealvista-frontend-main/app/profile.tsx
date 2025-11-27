@@ -174,7 +174,19 @@ export default function ProfileScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity 
+          onPress={() => {
+            console.log("Back button pressed");
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/home');
+            }
+          }} 
+          style={styles.backButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.6}
+        >
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile</Text>
@@ -235,6 +247,51 @@ export default function ProfileScreen() {
 
           {successMessage && (
             <Text style={styles.successText}>{successMessage}</Text>
+          )}
+        </View>
+
+        {/* Health & Preferences Card */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Health & Preferences</Text>
+          
+          {user?.dietaryPreferences && user.dietaryPreferences.length > 0 && (
+            <View style={styles.infoBlock}>
+              <Text style={styles.infoLabel}>Dietary Preferences</Text>
+              <View style={styles.tagsContainer}>
+                {user.dietaryPreferences.map((pref, index) => (
+                  <View key={index} style={styles.tag}>
+                    <Text style={styles.tagText}>{pref}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {user?.allergens && user.allergens.length > 0 && (
+            <View style={styles.infoBlock}>
+              <Text style={styles.infoLabel}>Allergen Restrictions</Text>
+              <View style={styles.tagsContainer}>
+                {user.allergens.map((allergen, index) => (
+                  <View key={index} style={[styles.tag, styles.allergenTag]}>
+                    <Text style={styles.tagText}>{allergen}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {user?.bmi && (
+            <View style={styles.infoBlock}>
+              <Text style={styles.infoLabel}>BMI Information</Text>
+              <Text style={styles.infoValue}>
+                BMI: {user.bmi.toFixed(1)} ({user.bmiCategory})
+              </Text>
+              {user.height && user.weight && (
+                <Text style={styles.infoSubtext}>
+                  Height: {user.height} cm | Weight: {user.weight} kg
+                </Text>
+              )}
+            </View>
           )}
         </View>
 
@@ -431,6 +488,40 @@ const styles = StyleSheet.create({
   infoBlock: {
     marginBottom: 16,
   },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#2C1A3F",
+    marginBottom: 12,
+  },
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 8,
+  },
+  tag: {
+    backgroundColor: "#E8E0F0",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#5A3D7A",
+  },
+  allergenTag: {
+    backgroundColor: "#FEE2E2",
+    borderColor: "#DC2626",
+  },
+  tagText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#5A3D7A",
+  },
+  infoSubtext: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 4,
+  },
   saveButton: {
     backgroundColor: "#3C2253",
     borderRadius: 25,
@@ -477,5 +568,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+
 
 

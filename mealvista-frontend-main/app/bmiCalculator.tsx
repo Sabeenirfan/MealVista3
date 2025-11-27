@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,16 +9,56 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { updateProfile, getProfile } from "../lib/authService";
 
 export default function BMICalculatorScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const isOnboarding = params.onboarding === 'true'; // Check if coming from signup flow
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
   const [bmi, setBmi] = useState<number | null>(null);
   const [category, setCategory] = useState("Not calculated");
   const [color, setColor] = useState("#2b7fff");
+
+  useEffect(() => {
+    const loadExistingData = async () => {
+      try {
+        const response = await getProfile();
+        if (response.user?.height) {
+          setHeight(response.user.height.toString());
+        }
+        if (response.user?.weight) {
+          setWeight(response.user.weight.toString());
+        }
+        if (response.user?.bmi) {
+          setBmi(response.user.bmi);
+          setCategory(response.user.bmiCategory || "Not calculated");
+          // Set color based on category
+          if (response.user.bmiCategory) {
+            const categoryColor = getBMICategoryColor(response.user.bmiCategory);
+            setColor(categoryColor);
+          }
+        }
+      } catch (error) {
+        console.warn("Unable to load existing BMI data", error);
+      }
+    };
+
+    if (!isOnboarding) {
+      loadExistingData();
+    }
+  }, [isOnboarding]);
+
+  const getBMICategoryColor = (cat: string) => {
+    if (cat.includes("Underweight")) return "#3B82F6";
+    if (cat.includes("Normal")) return "#10B981";
+    if (cat.includes("Overweight")) return "#F59E0B";
+    if (cat.includes("Obese")) return "#EF4444";
+    return "#2b7fff";
+  };
 
   const getBMICategory = (bmiValue: number) => {
     if (bmiValue < 18.5) {
@@ -58,13 +98,45 @@ export default function BMICalculatorScreen() {
     setColor(bmiColor);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (bmi === null) {
       Alert.alert("Error", "Please calculate your BMI first");
       return;
     }
-    // Navigate to allergen preference screen
-    router.push("/allergenPreference");
+    
+    try {
+      // Save BMI data to backend
+      await updateProfile({
+        height: parseFloat(height),
+        weight: parseFloat(weight),
+        bmi: bmi,
+        bmiCategory: category
+      });
+      console.log("BMI saved:", { height, weight, bmi, category });
+      
+      // If onboarding, go to next step (allergen preferences), otherwise go back to profile
+      if (isOnboarding) {
+        router.push({ pathname: "/allergenPreference", params: { onboarding: 'true' } } as any);
+      } else {
+        // Show success message and go back to profile
+        Alert.alert(
+          "Success",
+          `BMI saved successfully! Your BMI is ${bmi.toFixed(1)} (${category})`,
+          [
+            {
+              text: "OK",
+              onPress: () => router.back(),
+            },
+          ]
+        );
+      }
+    } catch (error: any) {
+      console.error("Error saving BMI:", error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "Failed to save BMI. Please try again."
+      );
+    }
   };
 
   const handleBack = () => {

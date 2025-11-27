@@ -112,7 +112,7 @@ export default function VerifyEmailOTP() {
 
       // Navigate immediately on success
       console.log('Navigating to dietary preferences...');
-      router.replace("/dietaryPreference");
+      router.replace({ pathname: "/dietaryPreference", params: { onboarding: 'true' } } as any);
     } catch (error: any) {
       console.error("OTP verification error:", error);
       console.error("Error response:", error.response?.data);

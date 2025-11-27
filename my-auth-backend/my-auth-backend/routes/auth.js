@@ -196,7 +196,13 @@ router.get('/me', auth, async (req, res) => {
         email: user.email,
         role: user.role || 'user',
         isAdmin: user.isAdmin || false,
-        createdAt: user.createdAt
+        createdAt: user.createdAt,
+        dietaryPreferences: user.dietaryPreferences || [],
+        allergens: user.allergens || [],
+        height: user.height,
+        weight: user.weight,
+        bmi: user.bmi,
+        bmiCategory: user.bmiCategory
       }
     });
   } catch (error) {
@@ -207,7 +213,7 @@ router.get('/me', auth, async (req, res) => {
 // UPDATE PROFILE
 router.put('/me', auth, async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, dietaryPreferences, allergens, height, weight, bmi, bmiCategory } = req.body;
 
     const user = await User.findOne({ _id: req.userId, isDeleted: { $ne: true } });
     if (!user) {
@@ -247,6 +253,36 @@ router.put('/me', auth, async (req, res) => {
       user.email = trimmedEmail;
     }
 
+    // Update dietary preferences if provided
+    if (dietaryPreferences !== undefined) {
+      user.dietaryPreferences = Array.isArray(dietaryPreferences) ? dietaryPreferences : [];
+    }
+
+    // Update allergens if provided
+    if (allergens !== undefined) {
+      user.allergens = Array.isArray(allergens) ? allergens : [];
+    }
+
+    // Update height if provided
+    if (height !== undefined) {
+      user.height = height ? Number(height) : null;
+    }
+
+    // Update weight if provided
+    if (weight !== undefined) {
+      user.weight = weight ? Number(weight) : null;
+    }
+
+    // Update BMI if provided
+    if (bmi !== undefined) {
+      user.bmi = bmi ? Number(bmi) : null;
+    }
+
+    // Update BMI category if provided
+    if (bmiCategory !== undefined) {
+      user.bmiCategory = bmiCategory || null;
+    }
+
     await user.save();
 
     res.json({ 
@@ -257,7 +293,13 @@ router.put('/me', auth, async (req, res) => {
         email: user.email,
         role: user.role || 'user',
         isAdmin: user.isAdmin || false,
-        createdAt: user.createdAt
+        createdAt: user.createdAt,
+        dietaryPreferences: user.dietaryPreferences || [],
+        allergens: user.allergens || [],
+        height: user.height,
+        weight: user.weight,
+        bmi: user.bmi,
+        bmiCategory: user.bmiCategory
       }
     });
   } catch (error) {

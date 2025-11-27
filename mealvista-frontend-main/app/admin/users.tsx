@@ -90,7 +90,7 @@ export default function UserManagement() {
 
     Alert.alert(
       "Delete User",
-      `Delete ${user.name} (${user.email})?`,
+      `Are you sure you want to delete ${user.name} (${user.email})?`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -98,14 +98,13 @@ export default function UserManagement() {
           style: "destructive",
           onPress: async () => {
             try {
-              setLoading(true);
+              console.log('Deleting user with ID:', userId);
               await deleteUser(userId);
               await loadUsers();
               Alert.alert("Success", "User deleted successfully");
             } catch (error: any) {
+              console.error('Delete error:', error);
               Alert.alert("Error", error.response?.data?.message || error.message || "Failed to delete user");
-            } finally {
-              setLoading(false);
             }
           },
         },
@@ -226,39 +225,13 @@ export default function UserManagement() {
                       </View>
                     </View>
                   </View>
-                  <View style={{ alignItems: 'flex-end', gap: 8 }}>
-                    <TouchableOpacity 
-                      style={styles.deleteButton}
-                      onPress={() => handleDeleteUser(user)}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="trash-outline" size={22} color="#DC2626" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={async () => {
-                        const uid = user._id || user.id;
-                        if (!uid) { Alert.alert("Error", "No user ID"); return; }
-                        Alert.alert("Delete User", `Delete ${user.name}?`, [
-                          { text: "No", style: "cancel" },
-                          {
-                            text: "Yes",
-                            onPress: async () => {
-                              try {
-                                await deleteUser(uid);
-                                await loadUsers();
-                                Alert.alert("Done", "User deleted");
-                              } catch (e: any) {
-                                Alert.alert("Error", e.message);
-                              }
-                            }
-                          }
-                        ]);
-                      }}
-                      style={{ backgroundColor: '#DC2626', padding: 8, borderRadius: 6 }}
-                    >
-                      <Text style={{ color: '#FFF', fontSize: 11, fontWeight: 'bold' }}>DELETE</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity 
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteUser(user)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="trash-outline" size={22} color="#DC2626" />
+                  </TouchableOpacity>
                 </View>
               ))
             )}

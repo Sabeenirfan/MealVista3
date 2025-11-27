@@ -118,10 +118,12 @@ export default function InventoryManagement() {
     console.log("=== DELETE FUNCTION CALLED ===");
     console.log("Item object:", JSON.stringify(item, null, 2));
     console.log("Item ID extracted:", itemId);
+    console.log("Item _id:", item._id);
+    console.log("Item id:", item.id);
     
     if (!itemId) {
+      console.error("ERROR: No ID found!");
       Alert.alert("Error", "Item ID is missing. Cannot delete item.");
-      console.error("Delete failed: Item ID is missing", item);
       return;
     }
 
@@ -129,7 +131,7 @@ export default function InventoryManagement() {
 
     Alert.alert(
       "Delete Ingredient",
-      `Are you sure you want to delete "${item.name}"? This action cannot be undone.`,
+      `Are you sure you want to delete "${item.name}"?\\n\\nID: ${itemId}\\n\\nThis action cannot be undone.`,
       [
         {
           text: "Cancel",
@@ -145,68 +147,32 @@ export default function InventoryManagement() {
             try {
               console.log("=== DELETE CONFIRMED ===");
               console.log("Deleting item with ID:", itemId);
-              console.log("Item name:", item.name);
+              console.log("Calling API: DELETE /api/admin/inventory/" + itemId);
               
               setLoading(true);
               
-              // Call delete API
-              console.log("Calling deleteInventoryItem API...");
               const result = await deleteInventoryItem(itemId);
-              console.log("Delete API SUCCESS - Response:", result);
+              console.log("Delete API SUCCESS:", result);
               
-              // Remove from state immediately for instant UI update
-              console.log("Updating UI state...");
-              setInventoryItems((prevItems) => {
-                const filtered = prevItems.filter((i) => {
-                  const id = i._id || i.id;
-                  const shouldKeep = id !== itemId;
-                  if (!shouldKeep) {
-                    console.log("Removing item from list:", i.name);
-                  }
-                  return shouldKeep;
-                });
-                console.log("State updated - Items before:", prevItems.length, "Items after:", filtered.length);
-                return filtered;
-              });
+              // Update UI immediately
+              setInventoryItems((prevItems) => prevItems.filter((i) => (i._id || i.id) !== itemId));
               
-              // Small delay to ensure state update is visible
-              await new Promise(resolve => setTimeout(resolve, 100));
-              
-              // Refresh from server to ensure consistency
-              console.log("Refreshing from server...");
               await loadInventory();
               
-              console.log("Delete completed successfully!");
-              
-              // Show success message
               Alert.alert("Success", "Ingredient deleted successfully");
             } catch (error: any) {
               console.error("=== DELETE ERROR ===");
-              console.error("Error object:", error);
-              console.error("Error response:", error.response);
-              console.error("Error response data:", error.response?.data);
-              console.error("Error message:", error.message);
-              console.error("Error stack:", error.stack);
+              console.error("Error:", error);
+              console.error("Response:", error.response?.data);
               
-              const errorMessage = 
-                error.response?.data?.message || 
-                error.response?.data?.error ||
-                error.message || 
-                "Failed to delete ingredient. Please check your connection and try again.";
-              
-              Alert.alert("Delete Failed", errorMessage);
-              
-              // Reload on error to ensure UI is in sync
-              console.log("Reloading inventory after error...");
+              Alert.alert("Delete Failed", error.response?.data?.message || error.message || "Failed to delete");
               await loadInventory();
             } finally {
               setLoading(false);
-              console.log("Delete operation finished");
             }
           },
         },
-      ],
-      { cancelable: true }
+      ]
     );
   };
 
@@ -227,12 +193,20 @@ export default function InventoryManagement() {
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Manage Inventory</Text>
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={() => router.push("/admin/inventory/add")}
-        >
-          <Ionicons name="add" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity 
+            style={styles.bulkUploadButton}
+            onPress={() => router.push("/admin/inventory/bulkUpload")}
+          >
+            <Ionicons name="cloud-upload-outline" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.addButton}
+            onPress={() => router.push("/admin/inventory/add")}
+          >
+            <Ionicons name="add" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -346,7 +320,12 @@ export default function InventoryManagement() {
                   <View style={styles.itemInfo}>
                     <View style={styles.itemImageContainer}>
                       {item.image ? (
-                        <Image source={{ uri: item.image }} style={styles.itemImage} />
+                        <Image 
+                          source={{ uri: item.image }} 
+                          style={styles.itemImage}
+                          onError={(e) => console.log("Image load error for", item.name, ":", e.nativeEvent.error)}
+                          onLoad={() => console.log("Image loaded successfully for", item.name)}
+                        />
                       ) : (
                         <View style={styles.itemImagePlaceholder}>
                           <Ionicons name="cube-outline" size={32} color="#9CA3AF" />
@@ -446,6 +425,16 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     color: "#FFFFFF",
+  },
+  headerButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  bulkUploadButton: {
+    padding: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 8,
   },
   addButton: {
     padding: 8,
