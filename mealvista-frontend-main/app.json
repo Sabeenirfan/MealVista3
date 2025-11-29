@@ -55,7 +55,11 @@
       "reactCompiler": true
     },
     "extra": {
-      "apiUrl": "http://192.168.10.3:5000"
+      "apiUrl": "http://192.168.10.3:5000",
+      "router": {},
+      "eas": {
+        "projectId": "16a15fc0-4931-4dbe-a669-ff4599067db4"
+      }
     }
   }
 }

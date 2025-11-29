@@ -307,4 +307,134 @@ router.put('/me', auth, async (req, res) => {
   }
 });
 
+// GET FAVORITES
+router.get('/favorites', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('favorites');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ favorites: user.favorites || [] });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// ADD TO FAVORITES
+router.post('/favorites', auth, async (req, res) => {
+  try {
+    const { id, title, image, time, calories, difficulty, rating } = req.body;
+
+    if (!id || !title) {
+      return res.status(400).json({ message: 'Recipe ID and title are required' });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if already favorited
+    const exists = user.favorites.some(fav => fav.id === id);
+    if (exists) {
+      return res.status(400).json({ message: 'Recipe already in favorites' });
+    }
+
+    // Add to favorites
+    user.favorites.unshift({
+      id,
+      title,
+      image: image || '',
+      time: time || null,
+      calories: calories || null,
+      difficulty: difficulty || '',
+      rating: rating || null,
+      addedAt: new Date()
+    });
+
+    await user.save();
+
+    res.json({ 
+      message: 'Added to favorites',
+      favorites: user.favorites
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// REMOVE FROM FAVORITES
+router.delete('/favorites/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Remove from favorites
+    user.favorites = user.favorites.filter(fav => fav.id !== id);
+    await user.save();
+
+    res.json({ 
+      message: 'Removed from favorites',
+      favorites: user.favorites
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// TOGGLE FAVORITE
+router.post('/favorites/toggle', auth, async (req, res) => {
+  try {
+    const { id, title, image, time, calories, difficulty, rating } = req.body;
+
+    if (!id || !title) {
+      return res.status(400).json({ message: 'Recipe ID and title are required' });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if already favorited
+    const exists = user.favorites.some(fav => fav.id === id);
+    
+    if (exists) {
+      // Remove from favorites
+      user.favorites = user.favorites.filter(fav => fav.id !== id);
+      await user.save();
+      return res.json({ 
+        message: 'Removed from favorites',
+        isFavorited: false,
+        favorites: user.favorites
+      });
+    } else {
+      // Add to favorites
+      user.favorites.unshift({
+        id,
+        title,
+        image: image || '',
+        time: time || null,
+        calories: calories || null,
+        difficulty: difficulty || '',
+        rating: rating || null,
+        addedAt: new Date()
+      });
+      await user.save();
+      return res.json({ 
+        message: 'Added to favorites',
+        isFavorited: true,
+        favorites: user.favorites
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 module.exports = router;

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import api from '../lib/api';
 
 export interface RecipeItem {
   id: string;
@@ -12,34 +13,68 @@ export interface RecipeItem {
 
 interface FavoritesContextType {
   favorites: RecipeItem[];
-  addFavorite: (item: RecipeItem) => void;
-  removeFavorite: (id: string) => void;
-  toggleFavorite: (item: RecipeItem) => void;
+  addFavorite: (item: RecipeItem) => Promise<void>;
+  removeFavorite: (id: string) => Promise<void>;
+  toggleFavorite: (item: RecipeItem) => Promise<void>;
   isFavorited: (id: string) => boolean;
+  loadFavorites: () => Promise<void>;
+  isLoading: boolean;
 }
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
 
 export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [favorites, setFavorites] = useState<RecipeItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const addFavorite = (item: RecipeItem) => {
-    setFavorites((prev) => {
-      if (prev.find((f) => f.id === item.id)) return prev;
-      return [item, ...prev];
-    });
+  // Load favorites from backend on mount
+  useEffect(() => {
+    loadFavorites();
+  }, []);
+
+  const loadFavorites = async () => {
+    try {
+      setIsLoading(true);
+      const response = await api.get('/api/auth/favorites');
+      setFavorites(response.data.favorites || []);
+    } catch (error) {
+      console.error('Failed to load favorites:', error);
+      setFavorites([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const removeFavorite = (id: string) => {
-    setFavorites((prev) => prev.filter((f) => f.id !== id));
+  const addFavorite = async (item: RecipeItem) => {
+    try {
+      const response = await api.post('/api/auth/favorites', item);
+      setFavorites(response.data.favorites || []);
+    } catch (error: any) {
+      console.error('Failed to add favorite:', error);
+      if (error.response?.status !== 400) {
+        throw error;
+      }
+    }
   };
 
-  const toggleFavorite = (item: RecipeItem) => {
-    setFavorites((prev) => {
-      const exists = prev.find((f) => f.id === item.id);
-      if (exists) return prev.filter((f) => f.id !== item.id);
-      return [item, ...prev];
-    });
+  const removeFavorite = async (id: string) => {
+    try {
+      const response = await api.delete(`/api/auth/favorites/${id}`);
+      setFavorites(response.data.favorites || []);
+    } catch (error) {
+      console.error('Failed to remove favorite:', error);
+      throw error;
+    }
+  };
+
+  const toggleFavorite = async (item: RecipeItem) => {
+    try {
+      const response = await api.post('/api/auth/favorites/toggle', item);
+      setFavorites(response.data.favorites || []);
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+      throw error;
+    }
   };
 
   const isFavorited = (id: string) => {
@@ -47,7 +82,7 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   return (
-    <FavoritesContext.Provider value={{ favorites, addFavorite, removeFavorite, toggleFavorite, isFavorited }}>
+    <FavoritesContext.Provider value={{ favorites, addFavorite, removeFavorite, toggleFavorite, isFavorited, loadFavorites, isLoading }}>
       {children}
     </FavoritesContext.Provider>
   );

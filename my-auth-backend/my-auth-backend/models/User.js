@@ -64,6 +64,19 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  favorites: {
+    type: [{
+      id: { type: String, required: true },
+      title: { type: String, required: true },
+      image: { type: String },
+      time: { type: Number },
+      calories: { type: Number },
+      difficulty: { type: String },
+      rating: { type: Number },
+      addedAt: { type: Date, default: Date.now }
+    }],
+    default: []
+  },
   isDeleted: {
     type: Boolean,
     default: false

@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
+import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, StatusBar, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFavorites } from '../contexts/FavoritesContext';
 
 export default function FavoritesScreen() {
   const router = useRouter();
-  const { favorites, removeFavorite } = useFavorites();
+  const { favorites, removeFavorite, isLoading } = useFavorites();
 
   const handleOpenRecipe = (item: any) => {
     router.push({
@@ -51,7 +51,12 @@ export default function FavoritesScreen() {
         <Text style={styles.headerTitle}>Favorites</Text>
       </View>
 
-      {favorites.length === 0 ? (
+      {isLoading ? (
+        <View style={styles.empty}>
+          <ActivityIndicator size="large" color="#3C2253" />
+          <Text style={styles.emptyText}>Loading favorites...</Text>
+        </View>
+      ) : favorites.length === 0 ? (
         <View style={styles.empty}>
           <Feather name="heart" size={64} color="#E5E7EB" />
           <Text style={styles.emptyText}>You have no favorite recipes yet</Text>
